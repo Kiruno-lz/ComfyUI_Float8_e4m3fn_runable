@@ -1,8 +1,9 @@
 import os
+import logging
 import sqlalchemy as sa
 from collections import defaultdict
 from datetime import datetime
-from typing import Iterable
+from typing import Iterable, Any
 from sqlalchemy import select, delete, exists, func
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.exc import IntegrityError
@@ -441,6 +442,216 @@ def replace_asset_info_metadata_projection(
         session.flush()
 
 
+def ingest_fs_asset(
+    session: Session,
+    *,
+    asset_hash: str,
+    abs_path: str,
+    size_bytes: int,
+    mtime_ns: int,
+    mime_type: str | None = None,
+    info_name: str | None = None,
+    owner_id: str = "",
+    preview_id: str | None = None,
+    user_metadata: dict | None = None,
+    tags: Sequence[str] = (),
+    tag_origin: str = "manual",
+    require_existing_tags: bool = False,
+) -> dict:
+    """
+    Idempotently upsert:
+      - Asset by content hash (create if missing)
+      - AssetCacheState(file_path) pointing to asset_id
+      - Optionally AssetInfo + tag links and metadata projection
+    Returns flags and ids.
+    """
+    locator = os.path.abspath(abs_path)
+    now = utcnow()
+
+    if preview_id:
+        if not session.get(Asset, preview_id):
+            preview_id = None
+
+    out: dict[str, Any] = {
+        "asset_created": False,
+        "asset_updated": False,
+        "state_created": False,
+        "state_updated": False,
+        "asset_info_id": None,
+    }
+
+    # 1) Asset by hash
+    asset = (
+        session.execute(select(Asset).where(Asset.hash == asset_hash).limit(1))
+    ).scalars().first()
+    if not asset:
+        vals = {
+            "hash": asset_hash,
+            "size_bytes": int(size_bytes),
+            "mime_type": mime_type,
+            "created_at": now,
+        }
+        res = session.execute(
+            sqlite.insert(Asset)
+            .values(**vals)
+            .on_conflict_do_nothing(index_elements=[Asset.hash])
+        )
+        if int(res.rowcount or 0) > 0:
+            out["asset_created"] = True
+        asset = (
+            session.execute(
+                select(Asset).where(Asset.hash == asset_hash).limit(1)
+            )
+        ).scalars().first()
+        if not asset:
+            raise RuntimeError("Asset row not found after upsert.")
+    else:
+        changed = False
+        if asset.size_bytes != int(size_bytes) and int(size_bytes) > 0:
+            asset.size_bytes = int(size_bytes)
+            changed = True
+        if mime_type and asset.mime_type != mime_type:
+            asset.mime_type = mime_type
+            changed = True
+        if changed:
+            out["asset_updated"] = True
+
+    # 2) AssetCacheState upsert by file_path (unique)
+    vals = {
+        "asset_id": asset.id,
+        "file_path": locator,
+        "mtime_ns": int(mtime_ns),
+    }
+    ins = (
+        sqlite.insert(AssetCacheState)
+        .values(**vals)
+        .on_conflict_do_nothing(index_elements=[AssetCacheState.file_path])
+    )
+
+    res = session.execute(ins)
+    if int(res.rowcount or 0) > 0:
+        out["state_created"] = True
+    else:
+        upd = (
+            sa.update(AssetCacheState)
+            .where(AssetCacheState.file_path == locator)
+            .where(
+                sa.or_(
+                    AssetCacheState.asset_id != asset.id,
+                    AssetCacheState.mtime_ns.is_(None),
+                    AssetCacheState.mtime_ns != int(mtime_ns),
+                )
+            )
+            .values(asset_id=asset.id, mtime_ns=int(mtime_ns))
+        )
+        res2 = session.execute(upd)
+        if int(res2.rowcount or 0) > 0:
+            out["state_updated"] = True
+
+    # 3) Optional AssetInfo + tags + metadata
+    if info_name:
+        try:
+            with session.begin_nested():
+                info = AssetInfo(
+                    owner_id=owner_id,
+                    name=info_name,
+                    asset_id=asset.id,
+                    preview_id=preview_id,
+                    created_at=now,
+                    updated_at=now,
+                    last_access_time=now,
+                )
+                session.add(info)
+                session.flush()
+                out["asset_info_id"] = info.id
+        except IntegrityError:
+            pass
+
+        existing_info = (
+            session.execute(
+                select(AssetInfo)
+                .where(
+                    AssetInfo.asset_id == asset.id,
+                    AssetInfo.name == info_name,
+                    (AssetInfo.owner_id == owner_id),
+                )
+                .limit(1)
+            )
+        ).unique().scalar_one_or_none()
+        if not existing_info:
+            raise RuntimeError("Failed to update or insert AssetInfo.")
+
+        if preview_id and existing_info.preview_id != preview_id:
+            existing_info.preview_id = preview_id
+
+        existing_info.updated_at = now
+        if existing_info.last_access_time < now:
+            existing_info.last_access_time = now
+        session.flush()
+        out["asset_info_id"] = existing_info.id
+
+        norm = [t.strip().lower() for t in (tags or []) if (t or "").strip()]
+        if norm and out["asset_info_id"] is not None:
+            if not require_existing_tags:
+                ensure_tags_exist(session, norm, tag_type="user")
+
+            existing_tag_names = set(
+                name for (name,) in (session.execute(select(Tag.name).where(Tag.name.in_(norm)))).all()
+            )
+            missing = [t for t in norm if t not in existing_tag_names]
+            if missing and require_existing_tags:
+                raise ValueError(f"Unknown tags: {missing}")
+
+            existing_links = set(
+                tag_name
+                for (tag_name,) in (
+                    session.execute(
+                        select(AssetInfoTag.tag_name).where(AssetInfoTag.asset_info_id == out["asset_info_id"])
+                    )
+                ).all()
+            )
+            to_add = [t for t in norm if t in existing_tag_names and t not in existing_links]
+            if to_add:
+                session.add_all(
+                    [
+                        AssetInfoTag(
+                            asset_info_id=out["asset_info_id"],
+                            tag_name=t,
+                            origin=tag_origin,
+                            added_at=now,
+                        )
+                        for t in to_add
+                    ]
+                )
+                session.flush()
+
+        # metadata["filename"] hack
+        if out["asset_info_id"] is not None:
+            primary_path = pick_best_live_path(list_cache_states_by_asset_id(session, asset_id=asset.id))
+            computed_filename = compute_relative_filename(primary_path) if primary_path else None
+
+            current_meta = existing_info.user_metadata or {}
+            new_meta = dict(current_meta)
+            if user_metadata is not None:
+                for k, v in user_metadata.items():
+                    new_meta[k] = v
+            if computed_filename:
+                new_meta["filename"] = computed_filename
+
+            if new_meta != current_meta:
+                replace_asset_info_metadata_projection(
+                    session,
+                    asset_info_id=out["asset_info_id"],
+                    user_metadata=new_meta,
+                )
+
+    try:
+        remove_missing_tag_for_asset_id(session, asset_id=asset.id)
+    except Exception:
+        logging.exception("Failed to clear 'missing' tag for asset %s", asset.id)
+    return out
+
+
 def list_tags_with_usage(
     session: Session,
     prefix: str | None = None,
@@ -521,3 +732,16 @@ def get_asset_tags(session: Session, *, asset_info_id: str) -> list[str]:
             )
         ).all()
     ]
+
+
+def remove_missing_tag_for_asset_id(
+    session: Session,
+    *,
+    asset_id: str,
+) -> None:
+    session.execute(
+        sa.delete(AssetInfoTag).where(
+            AssetInfoTag.asset_info_id.in_(sa.select(AssetInfo.id).where(AssetInfo.asset_id == asset_id)),
+            AssetInfoTag.tag_name == "missing",
+        )
+    )

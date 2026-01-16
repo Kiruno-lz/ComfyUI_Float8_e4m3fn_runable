@@ -88,6 +88,40 @@ def get_comfy_models_folders() -> list[tuple[str, list[str]]]:
             targets.append((name, paths))
     return targets
 
+def resolve_destination_from_tags(tags: list[str]) -> tuple[str, list[str]]:
+    """Validates and maps tags -> (base_dir, subdirs_for_fs)"""
+    root = tags[0]
+    if root == "models":
+        if len(tags) < 2:
+            raise ValueError("at least two tags required for model asset")
+        try:
+            bases = folder_paths.folder_names_and_paths[tags[1]][0]
+        except KeyError:
+            raise ValueError(f"unknown model category '{tags[1]}'")
+        if not bases:
+            raise ValueError(f"no base path configured for category '{tags[1]}'")
+        base_dir = os.path.abspath(bases[0])
+        raw_subdirs = tags[2:]
+    else:
+        base_dir = os.path.abspath(
+            folder_paths.get_input_directory() if root == "input" else folder_paths.get_output_directory()
+        )
+        raw_subdirs = tags[1:]
+    for i in raw_subdirs:
+        if i in (".", ".."):
+            raise ValueError("invalid path component in tags")
+
+    return base_dir, raw_subdirs if raw_subdirs else []
+
+def ensure_within_base(candidate: str, base: str) -> None:
+    cand_abs = os.path.abspath(candidate)
+    base_abs = os.path.abspath(base)
+    try:
+        if os.path.commonpath([cand_abs, base_abs]) != base_abs:
+            raise ValueError("destination escapes base directory")
+    except Exception:
+        raise ValueError("invalid destination path")
+
 def compute_relative_filename(file_path: str) -> str | None:
     """
     Return the model's path relative to the last well-known folder (the model category),
@@ -113,7 +147,6 @@ def compute_relative_filename(file_path: str) -> str | None:
         inside = parts[1:] if len(parts) > 1 else [parts[0]]
         return "/".join(inside)
     return "/".join(parts)  # input/output: keep all parts
-
 
 def get_relative_to_root_category_path_of_asset(file_path: str) -> tuple[Literal["input", "output", "models"], str]:
     """Given an absolute or relative file path, determine which root category the path belongs to:

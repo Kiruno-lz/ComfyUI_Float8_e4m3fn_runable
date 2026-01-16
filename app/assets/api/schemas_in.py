@@ -8,6 +8,7 @@ from pydantic import (
     Field,
     conint,
     field_validator,
+    model_validator,
 )
 
 
@@ -97,7 +98,6 @@ class CreateFromHashBody(BaseModel):
         return []
 
 
-
 class TagsListQuery(BaseModel):
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
 
@@ -114,6 +114,118 @@ class TagsListQuery(BaseModel):
             return v
         v = v.strip()
         return v.lower() or None
+
+
+class UploadAssetSpec(BaseModel):
+    """Upload Asset operation.
+    - tags: ordered; first is root ('models'|'input'|'output');
+            if root == 'models', second must be a valid category from folder_paths.folder_names_and_paths
+    - name: display name
+    - user_metadata: arbitrary JSON object (optional)
+    - hash: optional canonical 'blake3:<hex>' provided by the client for validation / fast-path
+
+    Files created via this endpoint are stored on disk using the **content hash** as the filename stem
+    and the original extension is preserved when available.
+    """
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+    tags: list[str] = Field(..., min_length=1)
+    name: str | None = Field(default=None, max_length=512, description="Display Name")
+    user_metadata: dict[str, Any] = Field(default_factory=dict)
+    hash: str | None = Field(default=None)
+
+    @field_validator("hash", mode="before")
+    @classmethod
+    def _parse_hash(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip().lower()
+        if not s:
+            return None
+        if ":" not in s:
+            raise ValueError("hash must be 'blake3:<hex>'")
+        algo, digest = s.split(":", 1)
+        if algo != "blake3":
+            raise ValueError("only canonical 'blake3:<hex>' is accepted here")
+        if not digest or any(c for c in digest if c not in "0123456789abcdef"):
+            raise ValueError("hash digest must be lowercase hex")
+        return f"{algo}:{digest}"
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _parse_tags(cls, v):
+        """
+        Accepts a list of strings (possibly multiple form fields),
+        where each string can be:
+          - JSON array (e.g., '["models","loras","foo"]')
+          - comma-separated ('models, loras, foo')
+          - single token ('models')
+        Returns a normalized, deduplicated, ordered list.
+        """
+        items: list[str] = []
+        if v is None:
+            return []
+        if isinstance(v, str):
+            v = [v]
+
+        if isinstance(v, list):
+            for item in v:
+                if item is None:
+                    continue
+                s = str(item).strip()
+                if not s:
+                    continue
+                if s.startswith("["):
+                    try:
+                        arr = json.loads(s)
+                        if isinstance(arr, list):
+                            items.extend(str(x) for x in arr)
+                            continue
+                    except Exception:
+                        pass  # fallback to CSV parse below
+                items.extend([p for p in s.split(",") if p.strip()])
+        else:
+            return []
+
+        # normalize + dedupe
+        norm = []
+        seen = set()
+        for t in items:
+            tnorm = str(t).strip().lower()
+            if tnorm and tnorm not in seen:
+                seen.add(tnorm)
+                norm.append(tnorm)
+        return norm
+
+    @field_validator("user_metadata", mode="before")
+    @classmethod
+    def _parse_metadata_json(cls, v):
+        if v is None or isinstance(v, dict):
+            return v or {}
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return {}
+            try:
+                parsed = json.loads(s)
+            except Exception as e:
+                raise ValueError(f"user_metadata must be JSON: {e}") from e
+            if not isinstance(parsed, dict):
+                raise ValueError("user_metadata must be a JSON object")
+            return parsed
+        return {}
+
+    @model_validator(mode="after")
+    def _validate_order(self):
+        if not self.tags:
+            raise ValueError("tags must be provided and non-empty")
+        root = self.tags[0]
+        if root not in {"models", "input", "output"}:
+            raise ValueError("first tag must be one of: models, input, output")
+        if root == "models":
+            if len(self.tags) < 2:
+                raise ValueError("models uploads require a category tag as the second tag")
+        return self
 
 
 class SetPreviewBody(BaseModel):

@@ -1,9 +1,10 @@
 import os
 import mimetypes
+import contextlib
 from typing import Sequence
 
 from app.database.db import create_session
-from app.assets.api import schemas_out
+from app.assets.api import schemas_out, schemas_in
 from app.assets.database.queries import (
     asset_exists_by_hash,
     get_asset_by_hash,
@@ -16,7 +17,11 @@ from app.assets.database.queries import (
     list_tags_with_usage,
     get_asset_tags,
     pick_best_live_path,
+    ingest_fs_asset,
 )
+from app.assets.helpers import resolve_destination_from_tags, ensure_within_base
+
+import app.assets.hashing as hashing
 
 
 def _safe_sort_field(requested: str | None) -> str:
@@ -26,6 +31,11 @@ def _safe_sort_field(requested: str | None) -> str:
     if v in {"name", "created_at", "updated_at", "size", "last_access_time"}:
         return v
     return "created_at"
+
+
+def _get_size_mtime_ns(path: str) -> tuple[int, int]:
+    st = os.stat(path, follow_symlinks=True)
+    return st.st_size, getattr(st, "st_mtime_ns", int(st.st_mtime * 1_000_000_000))
 
 
 def _safe_filename(name: str | None, fallback: str) -> str:
@@ -41,6 +51,7 @@ def asset_exists(*, asset_hash: str) -> bool:
     """
     with create_session() as session:
         return asset_exists_by_hash(session, asset_hash=asset_hash)
+
 
 def list_assets(
     *,
@@ -145,6 +156,126 @@ def resolve_asset_content_for_download(
     ctype = asset.mime_type or mimetypes.guess_type(info.name or abs_path)[0] or "application/octet-stream"
     download_name = info.name or os.path.basename(abs_path)
     return abs_path, ctype, download_name
+
+
+def upload_asset_from_temp_path(
+    spec: schemas_in.UploadAssetSpec,
+    *,
+    temp_path: str,
+    client_filename: str | None = None,
+    owner_id: str = "",
+    expected_asset_hash: str | None = None,
+) -> schemas_out.AssetCreated:
+    try:
+        digest = hashing.blake3_hash(temp_path)
+    except Exception as e:
+        raise RuntimeError(f"failed to hash uploaded file: {e}")
+    asset_hash = "blake3:" + digest
+
+    if expected_asset_hash and asset_hash != expected_asset_hash.strip().lower():
+        raise ValueError("HASH_MISMATCH")
+
+    with create_session() as session:
+        existing = get_asset_by_hash(session, asset_hash=asset_hash)
+        if existing is not None:
+            with contextlib.suppress(Exception):
+                if temp_path and os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+            display_name = _safe_filename(spec.name or (client_filename or ""), fallback=digest)
+            info = create_asset_info_for_existing_asset(
+                session,
+                asset_hash=asset_hash,
+                name=display_name,
+                user_metadata=spec.user_metadata or {},
+                tags=spec.tags or [],
+                tag_origin="manual",
+                owner_id=owner_id,
+            )
+            tag_names = get_asset_tags(session, asset_info_id=info.id)
+            session.commit()
+
+            return schemas_out.AssetCreated(
+                id=info.id,
+                name=info.name,
+                asset_hash=existing.hash,
+                size=int(existing.size_bytes) if existing.size_bytes is not None else None,
+                mime_type=existing.mime_type,
+                tags=tag_names,
+                user_metadata=info.user_metadata or {},
+                preview_id=info.preview_id,
+                created_at=info.created_at,
+                last_access_time=info.last_access_time,
+                created_new=False,
+            )
+
+    base_dir, subdirs = resolve_destination_from_tags(spec.tags)
+    dest_dir = os.path.join(base_dir, *subdirs) if subdirs else base_dir
+    os.makedirs(dest_dir, exist_ok=True)
+
+    src_for_ext = (client_filename or spec.name or "").strip()
+    _ext = os.path.splitext(os.path.basename(src_for_ext))[1] if src_for_ext else ""
+    ext = _ext if 0 < len(_ext) <= 16 else ""
+    hashed_basename = f"{digest}{ext}"
+    dest_abs = os.path.abspath(os.path.join(dest_dir, hashed_basename))
+    ensure_within_base(dest_abs, base_dir)
+
+    content_type = (
+        mimetypes.guess_type(os.path.basename(src_for_ext), strict=False)[0]
+        or mimetypes.guess_type(hashed_basename, strict=False)[0]
+        or "application/octet-stream"
+    )
+
+    try:
+        os.replace(temp_path, dest_abs)
+    except Exception as e:
+        raise RuntimeError(f"failed to move uploaded file into place: {e}")
+
+    try:
+        size_bytes, mtime_ns = _get_size_mtime_ns(dest_abs)
+    except OSError as e:
+        raise RuntimeError(f"failed to stat destination file: {e}")
+
+    with create_session() as session:
+        result = ingest_fs_asset(
+            session,
+            asset_hash=asset_hash,
+            abs_path=dest_abs,
+            size_bytes=size_bytes,
+            mtime_ns=mtime_ns,
+            mime_type=content_type,
+            info_name=_safe_filename(spec.name or (client_filename or ""), fallback=digest),
+            owner_id=owner_id,
+            preview_id=None,
+            user_metadata=spec.user_metadata or {},
+            tags=spec.tags,
+            tag_origin="manual",
+            require_existing_tags=False,
+        )
+        info_id = result["asset_info_id"]
+        if not info_id:
+            raise RuntimeError("failed to create asset metadata")
+
+        pair = fetch_asset_info_and_asset(session, asset_info_id=info_id, owner_id=owner_id)
+        if not pair:
+            raise RuntimeError("inconsistent DB state after ingest")
+        info, asset = pair
+        tag_names = get_asset_tags(session, asset_info_id=info.id)
+        session.commit()
+
+    return schemas_out.AssetCreated(
+        id=info.id,
+        name=info.name,
+        asset_hash=asset.hash,
+        size=int(asset.size_bytes),
+        mime_type=asset.mime_type,
+        tags=tag_names,
+        user_metadata=info.user_metadata or {},
+        preview_id=info.preview_id,
+        created_at=info.created_at,
+        last_access_time=info.last_access_time,
+        created_new=result["asset_created"],
+    )
 
 
 def create_asset_from_hash(
