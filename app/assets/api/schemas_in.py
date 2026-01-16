@@ -154,6 +154,10 @@ class TagsAdd(BaseModel):
         return deduplicated
 
 
+class TagsRemove(TagsAdd):
+    pass
+
+
 class UploadAssetSpec(BaseModel):
     """Upload Asset operation.
     - tags: ordered; first is root ('models'|'input'|'output');

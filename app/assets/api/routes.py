@@ -462,3 +462,33 @@ async def add_asset_tags(request: web.Request) -> web.Response:
         return _error_response(500, "INTERNAL", "Unexpected server error.")
 
     return web.json_response(result.model_dump(mode="json"), status=200)
+
+
+@ROUTES.delete(f"/api/assets/{{id:{UUID_RE}}}/tags")
+async def delete_asset_tags(request: web.Request) -> web.Response:
+    asset_info_id = str(uuid.UUID(request.match_info["id"]))
+    try:
+        payload = await request.json()
+        data = schemas_in.TagsRemove.model_validate(payload)
+    except ValidationError as ve:
+        return _error_response(400, "INVALID_BODY", "Invalid JSON body for tags remove.", {"errors": ve.errors()})
+    except Exception:
+        return _error_response(400, "INVALID_JSON", "Request body must be valid JSON.")
+
+    try:
+        result = manager.remove_tags_from_asset(
+            asset_info_id=asset_info_id,
+            tags=data.tags,
+            owner_id=USER_MANAGER.get_request_user_id(request),
+        )
+    except ValueError as ve:
+        return _error_response(404, "ASSET_NOT_FOUND", str(ve), {"id": asset_info_id})
+    except Exception:
+        logging.exception(
+            "remove_tags_from_asset failed for asset_info_id=%s, owner_id=%s",
+            asset_info_id,
+            USER_MANAGER.get_request_user_id(request),
+        )
+        return _error_response(500, "INTERNAL", "Unexpected server error.")
+
+    return web.json_response(result.model_dump(mode="json"), status=200)

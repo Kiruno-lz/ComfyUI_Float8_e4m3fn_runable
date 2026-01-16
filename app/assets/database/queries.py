@@ -898,6 +898,47 @@ def add_tags_to_asset_info(
     }
 
 
+def remove_tags_from_asset_info(
+    session: Session,
+    *,
+    asset_info_id: str,
+    tags: Sequence[str],
+) -> dict:
+    info = session.get(AssetInfo, asset_info_id)
+    if not info:
+        raise ValueError(f"AssetInfo {asset_info_id} not found")
+
+    norm = normalize_tags(tags)
+    if not norm:
+        total = get_asset_tags(session, asset_info_id=asset_info_id)
+        return {"removed": [], "not_present": [], "total_tags": total}
+
+    existing = {
+        tag_name
+        for (tag_name,) in (
+            session.execute(
+                sa.select(AssetInfoTag.tag_name).where(AssetInfoTag.asset_info_id == asset_info_id)
+            )
+        ).all()
+    }
+
+    to_remove = sorted(set(t for t in norm if t in existing))
+    not_present = sorted(set(t for t in norm if t not in existing))
+
+    if to_remove:
+        session.execute(
+            delete(AssetInfoTag)
+            .where(
+                AssetInfoTag.asset_info_id == asset_info_id,
+                AssetInfoTag.tag_name.in_(to_remove),
+            )
+        )
+        session.flush()
+
+    total = get_asset_tags(session, asset_info_id=asset_info_id)
+    return {"removed": to_remove, "not_present": not_present, "total_tags": total}
+
+
 def remove_missing_tag_for_asset_id(
     session: Session,
     *,

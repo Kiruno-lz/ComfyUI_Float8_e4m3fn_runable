@@ -21,6 +21,7 @@ from app.assets.database.queries import (
     list_tags_with_usage,
     get_asset_tags,
     add_tags_to_asset_info,
+    remove_tags_from_asset_info,
     pick_best_live_path,
     ingest_fs_asset,
     set_asset_info_preview,
@@ -458,6 +459,28 @@ def add_tags_to_asset(
         )
         session.commit()
     return schemas_out.TagsAdd(**data)
+
+
+def remove_tags_from_asset(
+    *,
+    asset_info_id: str,
+    tags: list[str],
+    owner_id: str = "",
+) -> schemas_out.TagsRemove:
+    with create_session() as session:
+        info_row = get_asset_info_by_id(session, asset_info_id=asset_info_id)
+        if not info_row:
+            raise ValueError(f"AssetInfo {asset_info_id} not found")
+        if info_row.owner_id and info_row.owner_id != owner_id:
+            raise PermissionError("not owner")
+
+        data = remove_tags_from_asset_info(
+            session,
+            asset_info_id=asset_info_id,
+            tags=tags,
+        )
+        session.commit()
+    return schemas_out.TagsRemove(**data)
 
 
 def list_tags(
