@@ -389,7 +389,9 @@ class VideoFromComponents(VideoInput):
             VideoCodec.H264: "libx264",
             VideoCodec.VP9: "libvpx-vp9",
         }
-        ffmpeg_codec = codec_map.get(resolved_codec, "libx264")
+        if resolved_codec not in codec_map:
+            raise ValueError(f"Unsupported codec: {resolved_codec}")
+        ffmpeg_codec = codec_map[resolved_codec]
 
         extra_kwargs = {}
         if resolved_format != VideoContainer.AUTO:
