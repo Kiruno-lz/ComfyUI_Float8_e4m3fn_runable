@@ -46,7 +46,7 @@ class InputMap:
     """
     Map inputs of node replacement.
 
-    Use InputMap.OldId or InputMap.UseValue for mapping purposes.
+    Use InputMap.OldId or InputMap.SetValue for mapping purposes.
     """
     class _Assign:
         def __init__(self, assign_type: str):
@@ -70,12 +70,12 @@ class InputMap:
                 "old_id": self.old_id,
             }
 
-    class UseValue(_Assign):
+    class SetValue(_Assign):
         """
         Use the given value for the input of the new node when replacing; assumes input is a widget.
         """
         def __init__(self, value: Any):
-            super().__init__("use_value")
+            super().__init__("set_value")
             self.value = value
 
         def as_dict(self):
@@ -83,7 +83,7 @@ class InputMap:
                 "value": self.value,
             }
 
-    def __init__(self, new_id: str, assign: OldId | UseValue):
+    def __init__(self, new_id: str, assign: OldId | SetValue):
         self.new_id = new_id
         self.assign = assign
 
