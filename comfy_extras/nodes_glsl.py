@@ -1,8 +1,3 @@
-"""
-GLSL Fragment Shader Node for ComfyUI using ModernGL.
-Supports headless rendering with automatic software/CPU fallback.
-"""
-
 import os
 import re
 import logging
