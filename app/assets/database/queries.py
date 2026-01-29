@@ -230,6 +230,7 @@ def list_asset_infos_page(
             select(AssetInfoTag.asset_info_id, Tag.name)
             .join(Tag, Tag.name == AssetInfoTag.tag_name)
             .where(AssetInfoTag.asset_info_id.in_(id_list))
+            .order_by(AssetInfoTag.added_at)
         )
         for aid, tag_name in rows.all():
             tag_map[aid].append(tag_name)
