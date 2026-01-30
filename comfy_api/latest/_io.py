@@ -1148,7 +1148,7 @@ class ImageCompare(ComfyTypeI):
 
 
 @comfytype(io_type="COLOR")
-class Color(ComfyTypeI):
+class Color(ComfyTypeIO):
   Type = str
 
   class Input(WidgetInput):
