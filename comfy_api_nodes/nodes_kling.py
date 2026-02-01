@@ -2007,6 +2007,7 @@ class KlingLipSyncTextToVideoNode(IO.ComfyNode):
                     max=2.0,
                     display_mode=IO.NumberDisplay.slider,
                     tooltip="Speech Rate. Valid range: 0.8~2.0, accurate to one decimal place.",
+                    advanced=True,
                 ),
             ],
             outputs=[
@@ -2128,6 +2129,7 @@ class KlingImageGenerationNode(IO.ComfyNode):
                 IO.Combo.Input(
                     "image_type",
                     options=[i.value for i in KlingImageGenImageReferenceType],
+                    advanced=True,
                 ),
                 IO.Float.Input(
                     "image_fidelity",
@@ -2137,6 +2139,7 @@ class KlingImageGenerationNode(IO.ComfyNode):
                     step=0.01,
                     display_mode=IO.NumberDisplay.slider,
                     tooltip="Reference intensity for user-uploaded images",
+                    advanced=True,
                 ),
                 IO.Float.Input(
                     "human_fidelity",
@@ -2146,6 +2149,7 @@ class KlingImageGenerationNode(IO.ComfyNode):
                     step=0.01,
                     display_mode=IO.NumberDisplay.slider,
                     tooltip="Subject reference similarity",
+                    advanced=True,
                 ),
                 IO.Combo.Input(
                     "model_name",
@@ -2260,7 +2264,7 @@ class TextToVideoWithAudio(IO.ComfyNode):
                 IO.Combo.Input("mode", options=["pro"]),
                 IO.Combo.Input("aspect_ratio", options=["16:9", "9:16", "1:1"]),
                 IO.Combo.Input("duration", options=[5, 10]),
-                IO.Boolean.Input("generate_audio", default=True),
+                IO.Boolean.Input("generate_audio", default=True, advanced=True),
             ],
             outputs=[
                 IO.Video.Output(),
@@ -2328,7 +2332,7 @@ class ImageToVideoWithAudio(IO.ComfyNode):
                 IO.String.Input("prompt", multiline=True, tooltip="Positive text prompt."),
                 IO.Combo.Input("mode", options=["pro"]),
                 IO.Combo.Input("duration", options=[5, 10]),
-                IO.Boolean.Input("generate_audio", default=True),
+                IO.Boolean.Input("generate_audio", default=True, advanced=True),
             ],
             outputs=[
                 IO.Video.Output(),

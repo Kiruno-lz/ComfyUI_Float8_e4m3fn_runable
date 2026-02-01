@@ -7,7 +7,7 @@ class ModelMergeSD1(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["time_embed."] = argument
         arg_dict["label_emb."] = argument
@@ -34,7 +34,7 @@ class ModelMergeSDXL(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["time_embed."] = argument
         arg_dict["label_emb."] = argument
@@ -60,7 +60,7 @@ class ModelMergeSD3_2B(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embed."] = argument
         arg_dict["x_embedder."] = argument
@@ -84,7 +84,7 @@ class ModelMergeAuraflow(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["init_x_linear."] = argument
         arg_dict["positional_encoding"] = argument
@@ -111,7 +111,7 @@ class ModelMergeFlux1(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["img_in."] = argument
         arg_dict["time_in."] = argument
@@ -137,7 +137,7 @@ class ModelMergeSD35_Large(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embed."] = argument
         arg_dict["x_embedder."] = argument
@@ -160,7 +160,7 @@ class ModelMergeMochiPreview(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_frequencies."] = argument
         arg_dict["t_embedder."] = argument
@@ -182,7 +182,7 @@ class ModelMergeLTXV(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["patchify_proj."] = argument
         arg_dict["adaln_single."] = argument
@@ -204,7 +204,7 @@ class ModelMergeCosmos7B(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embedder."] = argument
         arg_dict["extra_pos_embedder."] = argument
@@ -228,7 +228,7 @@ class ModelMergeCosmos14B(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embedder."] = argument
         arg_dict["extra_pos_embedder."] = argument
@@ -253,7 +253,7 @@ class ModelMergeWAN2_1(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["patch_embedding."] = argument
         arg_dict["time_embedding."] = argument
@@ -276,7 +276,7 @@ class ModelMergeCosmosPredict2_2B(comfy_extras.nodes_model_merging.ModelMergeBlo
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embedder."] = argument
         arg_dict["x_embedder."] = argument
@@ -299,7 +299,7 @@ class ModelMergeCosmosPredict2_14B(comfy_extras.nodes_model_merging.ModelMergeBl
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embedder."] = argument
         arg_dict["x_embedder."] = argument
@@ -322,7 +322,7 @@ class ModelMergeQwenImage(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         arg_dict = { "model1": ("MODEL",),
                               "model2": ("MODEL",)}
 
-        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01})
+        argument = ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "advanced": True})
 
         arg_dict["pos_embeds."] = argument
         arg_dict["img_in."] = argument

@@ -871,6 +871,7 @@ class TrainLoraNode(io.ComfyNode):
                     min=1,
                     max=1024,
                     tooltip="The number of gradient accumulation steps to use for training.",
+                    advanced=True,
                 ),
                 io.Int.Input(
                     "steps",
@@ -899,6 +900,7 @@ class TrainLoraNode(io.ComfyNode):
                     options=["AdamW", "Adam", "SGD", "RMSprop"],
                     default="AdamW",
                     tooltip="The optimizer to use for training.",
+                    advanced=True,
                 ),
                 io.Combo.Input(
                     "loss_function",
@@ -918,23 +920,27 @@ class TrainLoraNode(io.ComfyNode):
                     options=["bf16", "fp32"],
                     default="bf16",
                     tooltip="The dtype to use for training.",
+                    advanced=True,
                 ),
                 io.Combo.Input(
                     "lora_dtype",
                     options=["bf16", "fp32"],
                     default="bf16",
                     tooltip="The dtype to use for lora.",
+                    advanced=True,
                 ),
                 io.Combo.Input(
                     "algorithm",
                     options=list(adapter_maps.keys()),
                     default=list(adapter_maps.keys())[0],
                     tooltip="The algorithm to use for training.",
+                    advanced=True,
                 ),
                 io.Boolean.Input(
                     "gradient_checkpointing",
                     default=True,
                     tooltip="Use gradient checkpointing for training.",
+                    advanced=True,
                 ),
                 io.Combo.Input(
                     "existing_lora",
@@ -951,6 +957,7 @@ class TrainLoraNode(io.ComfyNode):
                     "bypass_mode",
                     default=False,
                     tooltip="Enable bypass mode for training. When enabled, adapters are applied via forward hooks instead of weight modification. Useful for quantized models where weights cannot be directly modified.",
+                    advanced=True,
                 ),
             ],
             outputs=[

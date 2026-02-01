@@ -82,8 +82,8 @@ class Preview3D(IO.ComfyNode):
             is_output_node=True,
             inputs=[
                 IO.String.Input("model_file", default="", multiline=False),
-                IO.Load3DCamera.Input("camera_info", optional=True),
-                IO.Image.Input("bg_image", optional=True),
+                IO.Load3DCamera.Input("camera_info", optional=True, advanced=True),
+                IO.Image.Input("bg_image", optional=True, advanced=True),
             ],
             outputs=[],
         )

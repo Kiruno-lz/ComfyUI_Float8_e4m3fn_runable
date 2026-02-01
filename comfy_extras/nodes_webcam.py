@@ -11,8 +11,8 @@ class WebcamCapture(nodes.LoadImage):
         return {
             "required": {
                 "image": ("WEBCAM", {}),
-                "width": ("INT", {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1}),
-                "height": ("INT", {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1}),
+                "width": ("INT", {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1, "advanced": True}),
+                "height": ("INT", {"default": 0, "min": 0, "max": MAX_RESOLUTION, "step": 1, "advanced": True}),
                 "capture_on_queue": ("BOOLEAN", {"default": True}),
             }
         }

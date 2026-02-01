@@ -473,7 +473,7 @@ class Rodin3D_Gen2(IO.ComfyNode):
                     default="500K-Triangle",
                     optional=True,
                 ),
-                IO.Boolean.Input("TAPose", default=False),
+                IO.Boolean.Input("TAPose", default=False, advanced=True),
             ],
             outputs=[IO.String.Output(display_name="3D Model Path")],
             hidden=[
