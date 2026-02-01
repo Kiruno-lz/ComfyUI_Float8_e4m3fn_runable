@@ -418,7 +418,6 @@ class MagnificImageStyleTransferNode(IO.ComfyNode):
                         ),
                     ],
                     tooltip="Enable portrait mode for facial enhancements.",
-                    advanced=True,
                 ),
                 IO.Boolean.Input(
                     "fixed_generation",
