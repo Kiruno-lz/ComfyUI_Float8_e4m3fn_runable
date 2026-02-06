@@ -46,7 +46,7 @@ class EmptyHunyuanLatentVideo(io.ComfyNode):
                 io.Int.Input("width", default=848, min=16, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("height", default=480, min=16, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("length", default=25, min=1, max=nodes.MAX_RESOLUTION, step=4),
-                io.Int.Input("batch_size", default=1, min=1, max=4096, advanced=True),
+                io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
             outputs=[
                 io.Latent.Output(),
@@ -89,7 +89,7 @@ class HunyuanVideo15ImageToVideo(io.ComfyNode):
                 io.Int.Input("width", default=848, min=16, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("height", default=480, min=16, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("length", default=33, min=1, max=nodes.MAX_RESOLUTION, step=4),
-                io.Int.Input("batch_size", default=1, min=1, max=4096, advanced=True),
+                io.Int.Input("batch_size", default=1, min=1, max=4096),
                 io.Image.Input("start_image", optional=True),
                 io.ClipVisionOutput.Input("clip_vision_output", optional=True),
             ],
@@ -313,7 +313,7 @@ class HunyuanImageToVideo(io.ComfyNode):
                 io.Int.Input("width", default=848, min=16, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("height", default=480, min=16, max=nodes.MAX_RESOLUTION, step=16),
                 io.Int.Input("length", default=53, min=1, max=nodes.MAX_RESOLUTION, step=4),
-                io.Int.Input("batch_size", default=1, min=1, max=4096, advanced=True),
+                io.Int.Input("batch_size", default=1, min=1, max=4096),
                 io.Combo.Input("guidance_type", options=["v1 (concat)", "v2 (replace)", "custom"], advanced=True),
                 io.Image.Input("start_image", optional=True),
             ],
@@ -361,7 +361,7 @@ class EmptyHunyuanImageLatent(io.ComfyNode):
             inputs=[
                 io.Int.Input("width", default=2048, min=64, max=nodes.MAX_RESOLUTION, step=32),
                 io.Int.Input("height", default=2048, min=64, max=nodes.MAX_RESOLUTION, step=32),
-                io.Int.Input("batch_size", default=1, min=1, max=4096, advanced=True),
+                io.Int.Input("batch_size", default=1, min=1, max=4096),
             ],
             outputs=[
                 io.Latent.Output(),
