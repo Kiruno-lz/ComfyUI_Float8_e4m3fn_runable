@@ -110,13 +110,17 @@ jobs:
           echo "✅ Release webhook sent successfully"
 
       - name: Send repository dispatch to desktop
-        if: ${{ env.DESKTOP_REPO_DISPATCH_TOKEN != '' }}
         env:
           DISPATCH_TOKEN: ${{ env.DESKTOP_REPO_DISPATCH_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
           set -euo pipefail
+
+          if [ -z "${DISPATCH_TOKEN:-}" ]; then
+            echo "::error::DESKTOP_REPO_DISPATCH_TOKEN is required but not set."
+            exit 1
+          fi
 
           PAYLOAD="$(jq -n \
             --arg release_tag "$RELEASE_TAG" \
@@ -137,7 +141,3 @@ jobs:
             -d "$PAYLOAD"
 
           echo "✅ Dispatched ComfyUI release ${RELEASE_TAG} to Comfy-Org/desktop"
-
-      - name: Warn when desktop dispatch is not configured
-        if: ${{ env.DESKTOP_REPO_DISPATCH_TOKEN == '' }}
-        run: echo "::warning::DESKTOP_REPO_DISPATCH_TOKEN is not set; skipping Comfy-Org/desktop repository_dispatch."
