@@ -34,6 +34,16 @@ class NodeReplace:
     Defines a possible node replacement, mapping inputs and outputs of the old node to the new node.
 
     Also supports assigning specific values to the input widgets of the new node.
+
+    Args:
+        new_node_id: The class name of the new replacement node.
+        old_node_id: The class name of the deprecated node.
+        old_widget_ids: Ordered list of input IDs for widgets that may not have an input slot
+            connected. The workflow JSON stores widget values by their relative position index,
+            not by ID. This list maps those positional indexes to input IDs, enabling the
+            replacement system to correctly identify widget values during node migration.
+        input_mapping: List of input mappings from old node to new node.
+        output_mapping: List of output mappings from old node to new node.
     """
     def __init__(self,
         new_node_id: str,
