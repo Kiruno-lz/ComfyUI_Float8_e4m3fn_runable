@@ -1,6 +1,32 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
+
+
+class InputMapOldId(TypedDict):
+    """Map an old node input to a new node input by ID."""
+    new_id: str
+    old_id: str
+
+
+class InputMapSetValue(TypedDict):
+    """Set a specific value for a new node input."""
+    new_id: str
+    set_value: Any
+
+
+InputMap = InputMapOldId | InputMapSetValue
+"""
+Input mapping for node replacement. Type is inferred by dictionary keys:
+- {"new_id": str, "old_id": str} - maps old input to new input
+- {"new_id": str, "set_value": Any} - sets a specific value for new input
+"""
+
+
+class OutputMap(TypedDict):
+    """Map outputs of node replacement via indexes."""
+    new_idx: int
+    old_idx: int
 
 
 class NodeReplace:
@@ -28,67 +54,6 @@ class NodeReplace:
             "new_node_id": self.new_node_id,
             "old_node_id": self.old_node_id,
             "old_widget_ids": self.old_widget_ids,
-            "input_mapping": [m.as_dict() for m in self.input_mapping] if self.input_mapping else None,
-            "output_mapping": [m.as_dict() for m in self.output_mapping] if self.output_mapping else None,
-        }
-
-
-class InputMap:
-    """
-    Map inputs of node replacement.
-
-    Use InputMap.OldId or InputMap.SetValue for mapping purposes.
-    """
-    class _Assign:
-        def __init__(self, assign_type: str):
-            self.assign_type = assign_type
-
-        def as_dict(self):
-            return {
-                "assign_type": self.assign_type,
-            }
-
-    class OldId(_Assign):
-        """Connect the input of the old node with given id to new node when replacing."""
-        def __init__(self, old_id: str):
-            super().__init__("old_id")
-            self.old_id = old_id
-
-        def as_dict(self):
-            return super().as_dict() | {
-                "old_id": self.old_id,
-            }
-
-    class SetValue(_Assign):
-        """Use the given value for the input of the new node when replacing; assumes input is a widget."""
-        def __init__(self, value: Any):
-            super().__init__("set_value")
-            self.value = value
-
-        def as_dict(self):
-            return super().as_dict() | {
-                "value": self.value,
-            }
-
-    def __init__(self, new_id: str, assign: OldId | SetValue):
-        self.new_id = new_id
-        self.assign = assign
-
-    def as_dict(self):
-        return {
-            "new_id": self.new_id,
-            "assign": self.assign.as_dict(),
-        }
-
-
-class OutputMap:
-    """Map outputs of node replacement via indexes, as that's how outputs are stored."""
-    def __init__(self, new_idx: int, old_idx: int):
-        self.new_idx = new_idx
-        self.old_idx = old_idx
-
-    def as_dict(self):
-        return {
-            "new_idx": self.new_idx,
-            "old_idx": self.old_idx,
+            "input_mapping": list(self.input_mapping) if self.input_mapping else None,
+            "output_mapping": list(self.output_mapping) if self.output_mapping else None,
         }

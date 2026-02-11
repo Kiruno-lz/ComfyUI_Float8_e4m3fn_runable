@@ -681,12 +681,12 @@ def register_replacements_longeredge():
             old_node_id="ResizeImagesByLongerEdge",
             old_widget_ids=["longer_edge"],
             input_mapping=[
-                node_replace.InputMap(new_id="image", assign=node_replace.InputMap.OldId("images")),
-                node_replace.InputMap(new_id="largest_size", assign=node_replace.InputMap.OldId("longer_edge")),
-                node_replace.InputMap(new_id="upscale_method", assign=node_replace.InputMap.SetValue("lanczos")),
+                {"new_id": "image", "old_id": "images"},
+                {"new_id": "largest_size", "old_id": "longer_edge"},
+                {"new_id": "upscale_method", "set_value": "lanczos"},
             ],
             # just to test the frontend output_mapping code, does nothing really here
-            output_mapping=[node_replace.OutputMap(new_idx=0, old_idx=0)],
+            output_mapping=[{"new_idx": 0, "old_idx": 0}],
         ))
 
 def register_replacements_batchimages():
@@ -695,8 +695,8 @@ def register_replacements_batchimages():
             new_node_id="BatchImagesNode",
             old_node_id="ImageBatch",
             input_mapping=[
-                node_replace.InputMap(new_id="images.image0", assign=node_replace.InputMap.OldId("image1")),
-                node_replace.InputMap(new_id="images.image1", assign=node_replace.InputMap.OldId("image2")),
+                {"new_id": "images.image0", "old_id": "image1"},
+                {"new_id": "images.image1", "old_id": "image2"},
             ],
         ))
 
@@ -707,10 +707,10 @@ def register_replacements_upscaleimage():
             old_node_id="ImageScaleBy",
             old_widget_ids=["upscale_method", "scale_by"],
             input_mapping=[
-                node_replace.InputMap(new_id="input", assign=node_replace.InputMap.OldId("image")),
-                node_replace.InputMap(new_id="resize_type", assign=node_replace.InputMap.SetValue("scale by multiplier")),
-                node_replace.InputMap(new_id="resize_type.multiplier", assign=node_replace.InputMap.OldId("scale_by")),
-                node_replace.InputMap(new_id="scale_method", assign=node_replace.InputMap.OldId("upscale_method")),
+                {"new_id": "input", "old_id": "image"},
+                {"new_id": "resize_type", "set_value": "scale by multiplier"},
+                {"new_id": "resize_type.multiplier", "old_id": "scale_by"},
+                {"new_id": "scale_method", "old_id": "upscale_method"},
             ],
         ))
 
@@ -720,7 +720,7 @@ def register_replacements_controlnet():
             new_node_id="ControlNetLoader",
             old_node_id="T2IAdapterLoader",
             input_mapping=[
-                node_replace.InputMap(new_id="control_net_name", assign=node_replace.InputMap.OldId("t2i_adapter_name")),
+                {"new_id": "control_net_name", "old_id": "t2i_adapter_name"},
             ],
         ))
 
